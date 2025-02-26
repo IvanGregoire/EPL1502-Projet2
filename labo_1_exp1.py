@@ -1,8 +1,6 @@
 R = [217, 500, 227, 510]
 V_P = [0.543, 0.947, 0.5878, 0.9473]
-V = [i/2 for i in V_P]
-V_0 = 1.081 
-
+V_0 = 1.081 * 2
 def Rth(V_0, V):
     n = []
     m = 0
@@ -15,4 +13,4 @@ def Rth(V_0, V):
 
         
 
-print(f"{Rth(V_0, V)} ohms")
+print(f"{Rth(V_0, V_P)} ohms")
