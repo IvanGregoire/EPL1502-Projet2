@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Chemin vers le fichier de données
-file_location = "Labo 2_30.csv"  # Remplacez par le chemin correct si nécessaire
+file_location = r"données\labo3_exp2.csv"  # Remplacez par le chemin correct si nécessaire
 
 # Fonction pour convertir les virgules en points
 def convert_to_float(value):
