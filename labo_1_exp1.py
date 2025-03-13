@@ -10,7 +10,5 @@ def Rth(V_0, V):
     for i in n:
         m+=i
     return m/len(n)
-
         
-
 print(f"{Rth(V_0, V_P)} ohms")
