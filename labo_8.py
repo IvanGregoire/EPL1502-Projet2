@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Chemin vers le fichier de données
-file_location = r"données\données labo5\Mardi 11_03_7.csv"  # Remplacez par le chemin correct si nécessaire
+file_location = r"S8.csv"  # Remplacez par le chemin correct si nécessaire
 
 # Fonction pour convertir les virgules en points
 def convert_to_float(value):
@@ -28,6 +28,6 @@ plt.ylabel("Tension [mV]")
 plt.title("Signal Mesuré")
 plt.plot(time, signal2, label="Signal détecté", color="r")
 plt.legend()
-plt.xlim(-50, 200)  # Ajustez les limites selon vos besoins
+plt.xlim(-1, -.9102251)  # Ajustez les limites selon vos besoins
 plt.show()
 #Attention, interpréter les résultats !!!

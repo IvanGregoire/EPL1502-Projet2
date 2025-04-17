@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Chemin vers le fichier de données
-file_location = r"données\données labo5\Mardi 11_03_7.csv"  # Remplacez par le chemin correct si nécessaire
+file_location = r"labo4/Labo4.exp2.2_01.csv"  # Remplacez par le chemin correct si nécessaire
 
 # Fonction pour convertir les virgules en points
 def convert_to_float(value):
@@ -18,16 +18,17 @@ data = np.genfromtxt(
 
 
 # Sélection de la plage de données à tracer
-time = data[0:3059, 0]  # Ajustez les indices selon vos besoins
-signal1 = data[0:3059, 1]  # Ajustez les indices selon vos besoins
-signal2 = data[0:3059, 2]
+time = data[0:3900, 0]  # Ajustez les indices selon vos besoins
+signal1 = data[0:3900, 1]  # Ajustez les indices selon vos besoins
+signal2 = data[0:3900, 2]
 # Tracé du signal
 plt.plot(time, signal1, label="Signal amplifié", color="b")
 plt.xlabel("Temps [ms]")
-plt.ylabel("Tension [mV]")
+plt.ylabel("Tension [V]")
 plt.title("Signal Mesuré")
 plt.plot(time, signal2, label="Signal détecté", color="r")
 plt.legend()
-plt.xlim(-50, 200)  # Ajustez les limites selon vos besoins
+plt.xlim(-5, 5)  # Ajustez les limites selon vos besoins
+plt.ylim(0, 5)  # Ajustez les limites selon vos besoins
 plt.show()
 #Attention, interpréter les résultats !!!

@@ -24,7 +24,7 @@ signal2 = data[0:3059, 2]
 # Tracé du signal
 plt.plot(time, signal1, label="V1", color="b")
 
-plt.xlabel("Temps [u]")
+plt.xlabel("Temps [ms]")
 plt.ylabel("Tension [V]")
 plt.title("Signal Mesuré")
 plt.plot(time, signal2, label="V2", color="r")
