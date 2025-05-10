@@ -2,8 +2,8 @@ import serial
 
 # Configuration du port série
 port = "COM3"  # À adapter selon ta machine
-baud = 9600    # Débit en bauds
-frequence = 10  # En Hz (oscillations par seconde) car 2 aimants
+baud = 250000    # Débit en bauds
+frequence = 10  # En Hz (oscillations par seconde) 
 start = 0 # Nombre d'oscillations à ignorer avant de commencer le comptage
 
 try:
