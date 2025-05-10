@@ -12,8 +12,10 @@ import serial
 # Configuration du port série
 port = "COM3"  # À adapter si besoin
 baud = 9600    # Débit (bauds)
-frequence_systeme = 9.63  # En Hz (tours par seconde) 
-
+frequence_systeme = 20  # En Hz (tours par seconde) 
+duree_test_1 = 50
+duree_test_2 = 100
+facteur_discretisation = 2
 erreur_lancement = False
 
 try:
@@ -22,7 +24,10 @@ except:
     print(f"Erreur d'ouverture du port {port}")
     erreur_lancement = True
 
-# Fonction de mise à jour du nombre d'oscillations (Identique à celle de frequence.py)
+########################################################################### 
+## Fonctions pour les microcontroleurs                                   ##   
+########################################################################### 
+
 def mise_a_jour(oscillations_totales, etat_precedent):
     if ser.in_waiting > 0: 
         ligne = ser.readline().decode('utf-8', errors='ignore').strip() 
@@ -32,6 +37,10 @@ def mise_a_jour(oscillations_totales, etat_precedent):
                 oscillations_totales += 1  
             return oscillations_totales, valeur
     return oscillations_totales, etat_precedent
+
+########################################################################### 
+## Fonctions pour le code python                                         ##   
+########################################################################### 
 
 import matplotlib.pyplot as plt
 import time
@@ -195,26 +204,34 @@ def alarme(frequence_systeme):
     except KeyboardInterrupt:
         print(f"Alarme arrêtée à {temps_alarme-temps_projet:.2f} secondes")
 
-def mode_debug(frequence_system, port, baud):
-    print("\n" + "-" * 40)
-    print(f"{'DEBUG':^40}")
-    print("-" * 40)
-    print(f"{'Fréquence':<25}: {frequence_system} Hz")
-    print(f"{'Port':<25}: {port}")
-    print(f"{'Baud':<25}: {baud}")
-    print("-" * 40)
+def mode_debug(frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
+    texte = [
+        "\n" + "-" * 40,
+        f"{'DEBUG':^40}",
+        "-" * 40,
+        f"{'Fréquence':<25}: {frequence_systeme} Hz",
+        f"{'Port':<25}: {port}",
+        f"{'Baud':<25}: {baud}",
+        f"{'duree_test_1':<25}: {duree_test_1}",
+        f"{'duree_test_2':<25}: {duree_test_2}",
+        f"{'facteur_discretisation':<25}: {facteur_discretisation}",
+        "-" * 40  # correction de la ligne avec "\n-" * 40
+    ]
+
+    for i in texte:
+        print(i)
 
     while True:
         code = input(">>> ")
         if code == "help":
-            print("quit\nchanger_frequence\nchanger_port\nchanger_baud\nreset")
+            print("quit\nchanger_frequence\nchanger_port\nchanger_baud\nreset\ndebug\nchanger_temps_facteur")
         elif code == "quit":
             break
         elif code == "changer_frequence":
             try:
                 frequence = float(input("Nouvelle fréquence (Hz) : "))
                 print(f"Fréquence changée à {frequence} Hz")
-            except ValueError:
+            except:
                 print("Erreur : nombre invalide.")
         elif code == "changer_port":
             port = input("Nouveau port : ")
@@ -222,17 +239,37 @@ def mode_debug(frequence_system, port, baud):
                 ser.close()
                 ser = serial.Serial(port, baud, timeout=1)
                 print(f"Port changé à {port}")
-            except serial.SerialException as e:
-                print(f"Erreur d'ouverture du port : {e}")
+            except:
+                print(f"Erreur d'ouverture du port {port}")
         elif code == "changer_baud":
             try:
                 baud = int(input("Nouveau baud : "))
                 ser.baudrate = baud
                 print(f"Baud changé à {baud}")
-            except ValueError:
+            except:
                 print("Erreur : doit être un entier.")
+        elif code == "debug":
+            for i in texte:
+                print(i)
         elif code == "reset":
+            frequence_systeme = 20
+            duree_test_1 = 50
+            duree_test_2 = 100
+            facteur_discretisation = 2
             print(f"{code} : réinitialisation effectuée.")
+        
+        elif code == "changer_temps_facteur":
+            try:
+                duree_test_1 = float(input("Nouvelle durée test 1 (en secondes) : "))
+                duree_test_2 = float(input("Nouvelle durée test 2 (en secondes) : "))
+                facteur_discretisation = int(input("Nouveau facteur de discrétisation : "))
+                print(f"Durées et facteur changés :")
+                print(f"  duree_test_1 = {duree_test_1}s")
+                print(f"  duree_test_2 = {duree_test_2}s")
+                print(f"  facteur_discretisation = {facteur_discretisation}")
+            except:
+                print("Erreur : saisie invalide pour les durées ou le facteur.")
+
         else:
             print("Commande invalide. Tapez 'help' pour voir les options.")
 
@@ -244,7 +281,7 @@ def extrapolation_richardson(frequence_1, frequence_2, facteur):
     #Si durée 1 = 10 et durée 2 = 5, facteur = 2
     return (frequence_2 * facteur**2 - frequence_1) / (facteur**2 - 1)
 
-def tester_extrapolation_richardson(duree_test_1, duree_test_2, facteur_discretisation):
+def tester_extrapolation_richardson(duree_test_1 , duree_test_2, facteur_discretisation):
     print(f"Mesure 1 (résolution faible, durée {duree_test_1} secondes) :")
     frequence_1 = mesurer_frequence(duree_test_1)
     if frequence_1 is None:
@@ -269,34 +306,54 @@ def tester_extrapolation_richardson(duree_test_1, duree_test_2, facteur_discreti
 ########################################################################### 
 ## Boucle                                                                ##   
 ########################################################################### 
+if erreur_lancement:
+    pass
+else:
+    try:
+        while True:
+            print("=== Bienvenue dans le projet de mesure de temps ===")
+            print("1. Chronomètre")
+            print("2. Horloge")
+            print("3. Alarme")
+            print("4. Jeu")
+            print("5. Calcul de la fréquence")
+            print("6. Debug")
+            print("7. Quitter le programme")
 
-try:
-    while True:
-        print("=== Bienvenue dans le projet de mesure de temps ===")
-        print("1. Chronomètre")
-        print("2. Horloge")
-        print("3. Alarme")
-        print("4. Jeu")
-        print("5. Debug")
-        print("6. Quitter le programme")
+            choix = input("Votre choix : ").strip()
 
-        choix = input("Votre choix : ").strip()
+            if choix == "1":
+                chronometre(frequence_systeme)
+            elif choix == "2":
+                horloge(frequence_systeme)
+            elif choix == "3":
+                alarme(frequence_systeme)
+            elif choix == "4":
+                print("Jeu non implémenté.")
+            elif choix == "5":
+                while True:
+                    print("1. Sans extrapolation")
+                    print("2. Extrapolation de Richardson")
+                    print("3. Revenir en arrière")
+                    sous_choix  = input("Comment voulez vous la calculer ? ").strip()
+                    if sous_choix  == "1":
+                        frequence_systeme = mesurer_frequence(100)
+                        print(f"Nouvelle fréquence du système établit à : {frequence_systeme}")
+                    elif sous_choix  == "2":
+                        frequence_systeme = tester_extrapolation_richardson(50, 100, 2)
+                        print(f"Nouvelle fréquence du système établit à : {frequence_systeme}")
+                    elif sous_choix  == "3":
+                        break
+                    else : 
+                        print("Entrée invalide")
 
-        if choix == "1":
-            chronometre(frequence_systeme)
-        elif choix == "2":
-            horloge(frequence_systeme)
-        elif choix == "3":
-            alarme(frequence_systeme)
-        elif choix == "4":
-            print("Jeu non implémenté.")
-        elif choix == "5":
-            mode_debug(frequence_systeme, port, baud)
-        elif choix == "6":
-            print("Fermeture du programme.")
-            break
-        else:
-            print("Entrée invalide. Veuillez taper un des choix proposés.")
+            elif choix == "6":
+                mode_debug(frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation)
+            elif choix == "7":
+                print("Fermeture du programme.")
+                break
+            else:
+                print("Entrée invalide. Veuillez taper un des choix proposés.")
 
-except KeyboardInterrupt:
-    print("Interruption manuelle détectée. Fermeture du programme.")
+    except KeyboardInterrupt:
+        print("Interruption manuelle détectée. Fermeture du programme.")
