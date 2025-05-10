@@ -9,9 +9,9 @@
 
 import serial
 
-# Configuration du port série
-port = "COM3"  # À adapter si besoin
-baud = 9600    # Débit (bauds)
+# Configuration du port série 1
+port1 = "COM10"  # À adapter si besoin 
+baud1 = 250000    # Débit (bauds)
 frequence_systeme = 20  # En Hz (tours par seconde) 
 duree_test_1 = 50
 duree_test_2 = 100
@@ -19,24 +19,46 @@ facteur_discretisation = 2
 erreur_lancement = False
 
 try:
-    ser = serial.Serial(port, baud, timeout=1)
+    ser1 = serial.Serial(port1, baud1, timeout=1)
 except:
-    print(f"Erreur d'ouverture du port {port}")
+    print(f"Erreur d'ouverture du port {port1}")
     erreur_lancement = True
+
 
 ########################################################################### 
 ## Fonctions pour les microcontroleurs                                   ##   
 ########################################################################### 
 
 def mise_a_jour(oscillations_totales, etat_precedent):
-    if ser.in_waiting > 0: 
-        ligne = ser.readline().decode('utf-8', errors='ignore').strip() 
+    if ser1.in_waiting > 0: 
+        ligne = ser1.readline().decode('utf-8', errors='ignore').strip() 
         if ligne.isdigit(): 
             valeur = int(ligne) 
             if valeur == 1 and etat_precedent == 0: 
                 oscillations_totales += 1  
             return oscillations_totales, valeur
     return oscillations_totales, etat_precedent
+    
+def envoyer_frequence(frequence):
+    message = f"FRQ {frequence:.2f} Hz\n"
+    ser1.write(message.encode('utf-8'))
+
+def envoyer_chronometre(temps_chronometre):
+    message = f"CHR {temps_chronometre:.2f} s\n"
+    ser1.write(message.encode('utf-8'))
+
+def envoyer_alarme(temps_alarme):
+    message = f"ALM {temps_alarme:.2f} s \nDring !\n"
+    ser1.write(message.encode('utf-8'))
+
+def envoyer_horloge(temps_horloge):
+    message = f"CLK {temps_horloge}\n"
+    ser1.write(message.encode('utf-8'))
+
+def envoyer_richardson(frequence_1, frequence_2=None, facteur=None):
+    message = f"RIC {frequence_1:.2f} Hz {frequence_2:.2f} Hz {facteur}\n"
+    ser1.write(message.encode('utf-8'))
+
 
 ########################################################################### 
 ## Fonctions pour le code python                                         ##   
@@ -67,12 +89,19 @@ def mesurer_frequence(duree_test):
                 liste_temps.append(temps_systeme)
                 liste_frequence.append(frequence)
                 print(f"{temps_systeme:.1f}s : {frequence:.2f} Hz")
+                if etat_precedent == 0:
+                    envoyer_frequence(frequence)
+                else:
+                    continue
 
             if temps_systeme >= duree_test:
+                envoyer_frequence(frequence)
+                print(f"\nFréquence mesurée : {frequence:.2f} Hz")
                 break
 
     except KeyboardInterrupt:
         print("Interruption manuelle.")
+        envoyer_frequence(frequence)
 
     temps_total = time.time() - temps_debut
     tours = oscillations_totales // 3
@@ -80,7 +109,7 @@ def mesurer_frequence(duree_test):
         frequence = tours / temps_total
         resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, oscillations_totales, tours)
     else:
-        frequence = 0
+        frequence = None
         return frequence
     return frequence
 
@@ -120,15 +149,21 @@ def chronometre(frequence_systeme):
             temps_reel = time.time() - temps_depart
 
             print(f"Temps mesuré : {temps_projet:.2f} s", end="\r")
+            if etat_precedent == 0:
+                envoyer_chronometre(temps_projet)
+            else:
+                continue
 
             liste_temps_projet.append(temps_projet)
             liste_temps_reel.append(temps_reel)
             liste_erreur.append(temps_reel - temps_projet)
 
 
+
     except KeyboardInterrupt:
         resultat_chronometre(frequence_systeme, oscillations_totales, tours, temps_projet, temps_reel,
                                        liste_temps_reel, liste_temps_projet, liste_erreur)
+        envoyer_chronometre(temps_projet)
 
 def resultat_chronometre(frequence, oscillations, tours, temps_projet, temps_reel, liste_t_reel, liste_t_projet, liste_t_erreur):
     print("\n" + "-" * 40)
@@ -173,12 +208,14 @@ def horloge(frequence_systeme):
             heure_approx = heure_depart + timedelta(seconds=temps_projet)
             heure_str = heure_approx.strftime("%H:%M:%S") # Format pour afficher l'heure
             print(f"Horloge : {heure_str}", end="\r")
+            envoyer_horloge(heure_str)
 
     except KeyboardInterrupt:
         print("\n" + "-" * 40)
         print(f"{'Horloge arrêtée':^40}")
         print(f"Il était {heure_str}")
         print("-" * 40)
+        envoyer_horloge(heure_str)
 
 def alarme(frequence_systeme):
     try:
@@ -196,13 +233,19 @@ def alarme(frequence_systeme):
             tours = oscillations_totales // 3
             temps_projet = tours / frequence_systeme
 
+            temps_restant = temps_alarme - temps_projet
+
             if temps_projet < temps_alarme:
-                print(f"Temps restant : {temps_alarme - temps_projet:.2f} secondes", end="\r")
+                print(f"Temps restant : {temps_restant:.2f} secondes", end="\r")
+                if etat_precedent == 0:
+                    envoyer_alarme(temps_restant)
             else:
                 print("Temps écoulé !")
+                envoyer_alarme(temps_restant)
                 break
     except KeyboardInterrupt:
-        print(f"Alarme arrêtée à {temps_alarme-temps_projet:.2f} secondes")
+        print(f"Alarme arrêtée à {temps_restant:.2f} secondes")
+        envoyer_alarme(temps_restant)
 
 def mode_debug(frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
     texte = [
@@ -295,7 +338,7 @@ def tester_extrapolation_richardson(duree_test_1 , duree_test_2, facteur_discret
         return None  
     
     frequence_extrapolee = extrapolation_richardson(frequence_1, frequence_2, facteur_discretisation)
-
+    envoyer_richardson(frequence_1, frequence_2, facteur_discretisation)
     print(f"\nRésultats:")
     print(f"  Fréquence mesurée avec résolution faible : {frequence_1:.3f} Hz")
     print(f"  Fréquence mesurée avec résolution élevée : {frequence_2:.3f} Hz")
@@ -348,7 +391,7 @@ else:
                         print("Entrée invalide")
 
             elif choix == "6":
-                mode_debug(frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation)
+                mode_debug(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_discretisation)
             elif choix == "7":
                 print("Fermeture du programme.")
                 break
