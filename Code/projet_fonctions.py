@@ -2,21 +2,23 @@
 ##                                                                                                                            ##
 ##   Ce code python est conçu pour mesurer le temps grâce au mouvement rotatif d'un système à trois aimants.                  ##
 ##   Auteur : [Ivan G.]                                                                                                       ##
-##   Date : 2025-05-10                                                                                                        ##
-##   Version 0.5.8                                                                                                            ##
-##                   a                                                                                                         ##
+##   Date : 2025-05-11                                                                                                        ##
+##   Version 0.7.8                                                                                                            ##
+##                                                                                                                            ##
  ##############################################################################################################################
 
 import serial
 
 # Configuration du port série 1
-port1 = "COM3"  # À adapter si besoin 
-baud1 = 9600    # Débit (bauds)
+
+port1 = "COM10"  # À adapter si besoin 
+baud1 = 115200    # Débit (bauds)
 frequence_systeme = 20  # En Hz (tours par seconde) 
-duree_test_1 = 50
+duree_test_1 = 50  
 duree_test_2 = 100
 facteur_discretisation = 2
 erreur_lancement = False
+delta_t = 0.01  # Délai entre chaque mesure (en secondes)
 
 try:
     ser1 = serial.Serial(port1, baud1, timeout=1)
@@ -31,34 +33,43 @@ except:
 
 def mise_a_jour(oscillations_totales, etat_precedent):
     if ser1.in_waiting > 0: 
-        ligne = ser1.readline().decode('utf-8', errors='ignore').strip() 
+        ligne = ser1.readline().decode('utf-8', errors='ignore').strip()
         if ligne.isdigit(): 
             valeur = int(ligne) 
             if valeur == 1 and etat_precedent == 0: 
                 oscillations_totales += 1  
-            return oscillations_totales, valeur
+            return oscillations_totales, valeur  # Retourne l'état actuel et le nombre d'oscillations
     return oscillations_totales, etat_precedent
-    
+
+def safe_write(message): #En cas de problème d'envoi
+    try:
+        ser1.write(message.encode('utf-8'))
+    except:
+        print(f"Problème lors de l’envoi série")
+
 def envoyer_frequence(frequence):
     message = f"FRQ {frequence:.2f} Hz\n"
-    ser1.write(message.encode('utf-8'))
+    safe_write(message)
 
 def envoyer_chronometre(temps_chronometre):
     message = f"CHR {temps_chronometre:.2f} s\n"
-    ser1.write(message.encode('utf-8'))
+    safe_write(message)
 
 def envoyer_alarme(temps_alarme):
     message = f"ALM {temps_alarme:.2f} s \nDring !\n"
-    ser1.write(message.encode('utf-8'))
+    safe_write(message)
 
 def envoyer_horloge(temps_horloge):
     message = f"CLK {temps_horloge}\n"
-    ser1.write(message.encode('utf-8'))
+    safe_write(message)
 
-def envoyer_richardson(frequence_1, frequence_2=None, facteur=None):
-    message = f"RIC {frequence_1:.2f} Hz {frequence_2:.2f} Hz {facteur}\n"
-    ser1.write(message.encode('utf-8'))
+def envoyer_richardson(frequence_1, facteur, frequence_systeme,frequence_2=None):
+    message = f"RIC 1 : {frequence_1:.2f} Hz | 2 : {frequence_2:.2f} Hz | {facteur} Final : {frequence_systeme:.2f} Hz\n"
+    safe_write(message)
 
+def accueil():
+    message = f"Bienvenue dans notre projet Q2 !\n"
+    safe_write(message)
 
 ########################################################################### 
 ## Fonctions pour le code python                                         ##   
@@ -98,6 +109,7 @@ def mesurer_frequence(duree_test):
                 envoyer_frequence(frequence)
                 print(f"\nFréquence mesurée : {frequence:.2f} Hz")
                 break
+            time.sleep(delta_t)  # Petite pause pour éviter de surcharger le CPU
 
     except KeyboardInterrupt:
         print("Interruption manuelle.")
@@ -131,6 +143,7 @@ def resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, osc
     plt.grid()
     plt.legend()
     plt.show()
+    envoyer_frequence(frequence)
 
 def chronometre(frequence_systeme):
     print("\nChronométrage en cours...\n")
@@ -157,7 +170,7 @@ def chronometre(frequence_systeme):
             liste_temps_projet.append(temps_projet)
             liste_temps_reel.append(temps_reel)
             liste_erreur.append(temps_reel - temps_projet)
-
+            time.sleep(delta_t)
 
 
     except KeyboardInterrupt:
@@ -209,6 +222,7 @@ def horloge(frequence_systeme):
             heure_str = heure_approx.strftime("%H:%M:%S") # Format pour afficher l'heure
             print(f"Horloge : {heure_str}", end="\r")
             envoyer_horloge(heure_str)
+            time.sleep(delta_t)
 
     except KeyboardInterrupt:
         print("\n" + "-" * 40)
@@ -243,15 +257,17 @@ def alarme(frequence_systeme):
                 print("Temps écoulé !")
                 envoyer_alarme(temps_restant)
                 break
+            time.sleep(delta_t)
     except KeyboardInterrupt:
         print(f"Alarme arrêtée à {temps_restant:.2f} secondes")
         envoyer_alarme(temps_restant)
 
-def mode_debug(frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
+def mode_debug(delta_t, frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
     texte = [
         "\n" + "-" * 40,
         f"{'DEBUG':^40}",
         "-" * 40,
+        f"{'Temps de pause':<25}: {delta_t} s",
         f"{'Fréquence':<25}: {frequence_systeme} Hz",
         f"{'Port':<25}: {port}",
         f"{'Baud':<25}: {baud}",
@@ -267,9 +283,15 @@ def mode_debug(frequence_systeme, port, baud, duree_test_1, duree_test_2, facteu
     while True:
         code = input(">>> ")
         if code == "help":
-            print("quit\nchanger_frequence\nchanger_port\nchanger_baud\nreset\ndebug\nchanger_temps_facteur")
+            print("quit\nchanger_temps_pause\nchanger_frequence\nchanger_port\nchanger_baud\nreset\ndebug\nchanger_temps_facteur")
         elif code == "quit":
             break
+        elif code == "changer_temps_pause":
+            try:
+                delta_t = float(input("Nouveau temps de pause (en secondes) : "))
+                print(f"Temps de pause changé à {delta_t} secondes")
+            except:
+                print("Erreur : nombre invalide.")
         elif code == "changer_frequence":
             try:
                 frequence = float(input("Nouvelle fréquence (Hz) : "))
@@ -338,11 +360,13 @@ def tester_extrapolation_richardson(duree_test_1 , duree_test_2, facteur_discret
         return None  
     
     frequence_extrapolee = extrapolation_richardson(frequence_1, frequence_2, facteur_discretisation)
-    envoyer_richardson(frequence_1, frequence_2, facteur_discretisation)
-    print(f"\nRésultats:")
+    envoyer_richardson(frequence_1, facteur_discretisation, frequence_extrapolee, frequence_2)
+    print("-" * 40)
+    print(f"\n--- Résultats de l'extrapolation ---")
     print(f"  Fréquence mesurée avec résolution faible : {frequence_1:.3f} Hz")
     print(f"  Fréquence mesurée avec résolution élevée : {frequence_2:.3f} Hz")
     print(f"  Fréquence extrapolée (Richardson) : {frequence_extrapolee:.3f} Hz")
+    print("-" * 40)
     
     return frequence_extrapolee
 
@@ -356,6 +380,7 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
     else:
         try:
             while True:
+                accueil()
                 print("=== Bienvenue dans le projet de mesure de temps ===")
                 print("1. Chronomètre")
                 print("2. Horloge")
@@ -382,10 +407,10 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
                         print("3. Revenir en arrière")
                         sous_choix  = input("Comment voulez vous la calculer ? ").strip()
                         if sous_choix  == "1":
-                            frequence_systeme = mesurer_frequence(100)
+                            frequence_systeme = mesurer_frequence(duree_test_2)
                             print(f"Nouvelle fréquence du système établit à : {frequence_systeme}")
                         elif sous_choix  == "2":
-                            frequence_systeme = tester_extrapolation_richardson(50, 100, 2)
+                            frequence_systeme = tester_extrapolation_richardson(duree_test_1, duree_test_2, facteur_discretisation)
                             print(f"Nouvelle fréquence du système établit à : {frequence_systeme}")
                         elif sous_choix  == "3":
                             break
@@ -393,7 +418,7 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
                             print("Entrée invalide")
 
                 elif choix == "6":
-                    mode_debug(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_discretisation)
+                    mode_debug(delta_t, frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_discretisation)
                 elif choix == "7":
                     print("Fermeture du programme.")
                     break

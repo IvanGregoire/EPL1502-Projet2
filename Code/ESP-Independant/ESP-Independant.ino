@@ -24,9 +24,9 @@ void setup() {
   }
 
   display.clearDisplay();
-  display.setTextSize(1.5);
+  display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
+  display.setCursor(0, 0); // On affiche en haut à gauche
   display.println("En attente...");
   display.display();
 }
