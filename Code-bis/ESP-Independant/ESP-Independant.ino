@@ -16,7 +16,7 @@ String ligneSerial = "";  // Pour lire les lignes série
 
 void setup() {
   Wire.begin(21, 22);     // I2C sur broches personnalisées
-  Serial.begin(250000);
+  Serial.begin(115200);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("Échec"));
@@ -32,48 +32,27 @@ void setup() {
 }
 
 void loop() {
-  // Lecture capteur
+  // Lecture bobine
   valeur = analogRead(Mesure);
   int etat = (valeur > seuil) ? 0 : 1;
 
-  // Si l'état change, l'afficher
-  static int dernierEtat = -1;
+  // Si l'état change, l'afficher et envoyer à la série
+  static int dernierEtat = -1;  // Variable pour stocker l'état précédent
   if (etat != dernierEtat) {
-    Serial.println(etat);
-    dernierEtat = etat;
+    Serial.println(etat);  // Envoie de l'état via série uniquement lorsqu'il change
+    dernierEtat = etat;    // Mise à jour de l'état précédent
   }
 
-  // Lecture série
+  // Lecture des données envoyées par le port
   if (Serial.available()) {
     ligneSerial = Serial.readStringUntil('\n');
-    ligneSerial.trim();
-
-    // Appel à la fonction afficherTexte selon la commande série reçue
-    if (ligneSerial.startsWith("FRQ")) {
-      afficherTexte("Fréquence:", ligneSerial.substring(4));
-    } 
-    else if (ligneSerial.startsWith("CHR")) {
-      afficherTexte("Chronomètre:", ligneSerial.substring(4));
-    } 
-    else if (ligneSerial.startsWith("CLK")) {
-      afficherTexte("Heure:", ligneSerial.substring(4));
-    }
-    else if (ligneSerial.startsWith("ALM")) {
-      afficherTexte("Alarme:", ligneSerial.substring(4));
-    }
-    else if (ligneSerial.startsWith("RIC")) {
-      afficherTexte("Résultat:", ligneSerial.substring(4));
-    }
+    afficherTexte(ligneSerial);  // Affichage simple du message reçu
   }
 }
 
-void afficherTexte(String titre, String valeur) {
+void afficherTexte(String texte) {
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.println(titre);
-  display.setTextSize(2);
-  display.setCursor(0, 20);
-  display.println(valeur);
-  display.setTextSize(1);
+  display.println(texte);
   display.display();
 }
