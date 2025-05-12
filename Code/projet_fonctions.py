@@ -169,8 +169,6 @@ def chronometre(frequence_systeme):
             print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} | {tours}", end="\r")
             if etat_precedent == 0:
                 envoyer_chronometre(temps_projet)
-            else:
-                continue
 
             liste_temps_projet.append(temps_projet)
             liste_temps_reel.append(temps_reel)
