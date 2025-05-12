@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
+// Penser à intervertir le signalement du 0 et du 1 entres mes tests et le  projet
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
@@ -9,7 +9,8 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 int Mesure = 4;        // Pin analogique utilisé pour la mesure
-int seuil = 3000;      // Seuil pour la détection
+int seuilBas  = 2800;      // Seuil pour la détection
+int seuilHaut = 3200;
 int valeur = 0;
 
 String ligneSerial = "";  // Pour lire les lignes série
@@ -34,10 +35,13 @@ void setup() {
 void loop() {
   // Lecture bobine
   valeur = analogRead(Mesure);
-  int etat = (valeur > seuil) ? 0 : 1;
+  static int etat = -1;         
+  static int dernierEtat = -1;  
+
+  if (valeur > seuilHaut) etat = 0;
+  else if (valeur < seuilBas) etat = 1;
 
   // Si l'état change, l'afficher et envoyer à la série
-  static int dernierEtat = -1;  // Variable pour stocker l'état précédent
   if (etat != dernierEtat) {
     Serial.println(etat);  // Envoie de l'état via série uniquement lorsqu'il change
     dernierEtat = etat;    // Mise à jour de l'état précédent

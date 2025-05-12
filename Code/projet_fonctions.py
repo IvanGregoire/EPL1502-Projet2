@@ -71,6 +71,7 @@ def accueil():
     message = f"Bienvenue dans notre projet Q2 !\n"
     safe_write(message)
 
+
 ########################################################################### 
 ## Fonctions pour le code python                                         ##   
 ########################################################################### 
@@ -262,6 +263,58 @@ def alarme(frequence_systeme):
         print(f"Alarme arrêtée à {temps_restant:.2f} secondes")
         envoyer_alarme(temps_restant)
 
+def jeu1(frequence_systeme):
+
+    texte = [
+        "-" * 40,
+        f"{'Jeu 1':^40}",
+        "-" * 40,
+        "Le but est simple : essayez d'estimer 10 secondes dans notre système.",
+        "Le temps écoulé sera affiché durant les 4 premières secondes.",
+        "Pour commencer, appuyez sur le bouton.",
+        "Appuyez à nouveau pour arrêter le chronomètre.",
+        "Bonne chance !",
+        "-" * 40,
+    ]
+    for i in texte:
+        print(i)
+
+    etat_precedent = 0
+    oscillations_totales = 0
+
+    print("Appuyez sur le bouton pour commencer...")
+
+    while True:
+        oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
+        if etat_precedent == 3:
+            print("Début du jeu !")
+            break
+    time.sleep(delta_t)
+
+    # Réinitialisation pour la mesure
+    oscillations_totales = 0
+    etat_precedent = 1  # On suppose que le bouton a été pressé pour démarrer
+
+    try:
+        while True:
+            oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
+            tours = oscillations_totales // 3
+            temps_projet = tours / frequence_systeme
+
+            if temps_projet <= 4:
+                print(f"Temps (affiché) : {temps_projet:.2f} secondes", end="\r")
+
+            # Si le bouton est pressé à nouveau, on arrête
+            if etat_precedent == 1:
+                print(f"\nFin du jeu ! Vous avez estimé {temps_projet:.2f} secondes.")
+                safe_write(f"JEU Temps estimé : {temps_projet:.2f} secondes\n")
+                break
+
+            time.sleep(delta_t)
+
+    except KeyboardInterrupt:
+        print(f"\nJeu interrompu à {temps_projet:.2f} secondes.")
+
 def mode_debug(delta_t, frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
     texte = [
         "\n" + "-" * 40,
@@ -399,7 +452,7 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
                 elif choix == "3":
                     alarme(frequence_systeme)
                 elif choix == "4":
-                    print("Jeu non implémenté.")
+                    jeu1(frequence_systeme)
                 elif choix == "5":
                     while True:
                         print("1. Sans extrapolation")
