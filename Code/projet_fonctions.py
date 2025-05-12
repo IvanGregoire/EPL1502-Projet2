@@ -9,23 +9,27 @@
 
 import serial
 
-# Configuration du port série 1
+# Configuration des ports
 
-port1 = "COM10"  # À adapter si besoin 
-baud1 = 115200    # Débit (bauds)
-frequence_systeme = 20  # En Hz (tours par seconde) 
+port1 = "COM12" 
+baud1 = 9600    
+port2 = "COM10"  
+baud2 = 115200    
+
+
+frequence_systeme = 20  # En Hz
 duree_test_1 = 50  
 duree_test_2 = 100
 facteur_discretisation = 2
+delta_t = 0.001  # Délai entre les mesures
 erreur_lancement = False
-delta_t = 0.01  # Délai entre chaque mesure (en secondes)
 
 try:
     ser1 = serial.Serial(port1, baud1, timeout=1)
+    ser2 = serial.Serial(port2, baud2, timeout=1)
 except:
-    print(f"Erreur d'ouverture du port {port1}")
+    print(f"Erreur d'ouverture du port {port1} ou {port2}.")
     erreur_lancement = True
-
 
 ########################################################################### 
 ## Fonctions pour les microcontroleurs                                   ##   
@@ -43,7 +47,7 @@ def mise_a_jour(oscillations_totales, etat_precedent):
 
 def safe_write(message): #En cas de problème d'envoi
     try:
-        ser1.write(message.encode('utf-8'))
+        ser2.write(message.encode('utf-8'))
     except:
         print(f"Problème lors de l’envoi série")
 
@@ -162,7 +166,7 @@ def chronometre(frequence_systeme):
             temps_projet = tours / frequence_systeme
             temps_reel = time.time() - temps_depart
 
-            print(f"Temps mesuré : {temps_projet:.2f} s", end="\r")
+            print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} | {tours}", end="\r")
             if etat_precedent == 0:
                 envoyer_chronometre(temps_projet)
             else:
