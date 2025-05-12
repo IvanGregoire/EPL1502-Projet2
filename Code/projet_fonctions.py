@@ -75,6 +75,18 @@ def accueil():
     message = f"Bienvenue dans notre projet Q2 !\n"
     safe_write(message)
 
+def recevoir_message():
+    try:
+        while True:
+            if ser2.in_waiting > 0:
+                ligne = ser2.readline().decode('utf-8', errors='ignore').strip()
+                if ligne == "BEGIN":
+                    return ligne
+                
+            time.sleep(delta_t) 
+    except :
+        print("Erreur de réception du message. PORT 2")
+        return
 
 ########################################################################### 
 ## Fonctions pour le code python                                         ##   
