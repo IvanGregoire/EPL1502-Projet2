@@ -1,23 +1,26 @@
-int Mesure = A0;        // Pin analogique utilisé pour la mesure
-int seuil = 700;   // seuil de détection
+const int Mesure = A0;      // Pin analogique utilisé pour la mesure
+const int seuil = 300;      // Seuil de détection
 int valeur = 0;
+int etat = -1;              // État précédent
+int nouvelEtat = -1;        // État actuel
 
 void setup() {
-
-  Serial.begin(9600);
-
+  Serial.begin(9600);       // Initialisation de la communication série
 }
 
 void loop() {
-  // Lecture bobine
+  // Lecture de la valeur analogique
   valeur = analogRead(Mesure);
-  static int etat = -1;         
-  static int dernierEtat = -1;  
 
-  if (valeur > seuil) etat = 0;
-  else if (valeur < seuil) etat = 1;
+  // Détermination de l'état actuel
+  if (valeur > seuil) {
+    nouvelEtat = 0;
+  } else {
+    nouvelEtat = 1;
+  }
 
-  // Si l'état change, l'afficher et envoyer à la série
-    Serial.println(etat);  // Envoie de l'état via série uniquement lorsqu'il change
-    dernierEtat = etat;    // Mise à jour de l'état précédent
+  if (nouvelEtat != etat) {
+    etat = nouvelEtat;
+    Serial.println(etat);
+  }
 }

@@ -2,8 +2,8 @@
 ##                                                                                                                            ##
 ##   Ce code python est conçu pour mesurer le temps grâce au mouvement rotatif d'un système à trois aimants.                  ##
 ##   Auteur : [Ivan G.]                                                                                                       ##
-##   Date : 2025-05-11                                                                                                        ##
-##   Version 0.7.8                                                                                                            ##
+##   Date : 2025-05-13                                                                                                        ##
+##   Version 1.0.0                                                                                                          ##
 ##                                                                                                                            ##
  ##############################################################################################################################
 
@@ -21,7 +21,7 @@ frequence_systeme = 20  # En Hz
 duree_test_1 = 50  
 duree_test_2 = 100
 facteur_discretisation = 2
-delta_t = 0.001  # Délai entre les mesures
+delta_t = 0  # Délai entre les mesures
 erreur_lancement = False
 
 try:
@@ -51,50 +51,40 @@ def safe_write(message): #En cas de problème d'envoi
     except:
         print(f"Problème lors de l’envoi série")
 
-def envoyer_frequence(frequence):
-    message = f"FRQ {frequence:.2f} Hz\n"
-    safe_write(message)
-
-def envoyer_chronometre(temps_chronometre):
-    message = f"CHR {temps_chronometre:.2f} s\n"
-    safe_write(message)
-
-def envoyer_alarme(temps_alarme):
-    message = f"ALM {temps_alarme:.2f} s \nDring !\n"
-    safe_write(message)
-
-def envoyer_horloge(temps_horloge):
-    message = f"CLK {temps_horloge}\n"
-    safe_write(message)
-
 def envoyer_richardson(frequence_1, facteur, frequence_systeme,frequence_2=None):
     message = f"RIC 1 : {frequence_1:.2f} Hz | 2 : {frequence_2:.2f} Hz | {facteur} Final : {frequence_systeme:.2f} Hz\n"
     safe_write(message)
 
-def accueil():
-    message = f"Bienvenue dans notre projet Q2 !\n"
+def message_str(message):
+    message = f"{message}\n"
     safe_write(message)
 
 def recevoir_message():
     try:
-        while True:
-            if ser2.in_waiting > 0:
-                ligne = ser2.readline().decode('utf-8', errors='ignore').strip()
-                if ligne == "BEGIN":
-                    return ligne
-                
-            time.sleep(delta_t) 
+        if ser2.in_waiting > 0:
+            ligne = ser2.readline().decode('utf-8', errors='ignore').strip()
+            if ligne == "BEGIN":
+                return ligne
+            else:
+                return None
+            
+        time.sleep(delta_t) 
     except :
         print("Erreur de réception du message. PORT 2")
         return
 
+def envoyer_message(type_msg, valeur):
+    if isinstance(valeur, float):
+        message = f"{type_msg} {valeur:.2f} s\n"
+    else:
+        message = f"{type_msg} {valeur}\n"
+    safe_write(message)
 ########################################################################### 
 ## Fonctions pour le code python                                         ##   
 ########################################################################### 
 
 import matplotlib.pyplot as plt
 import time
-from threading import Thread, Event
 from datetime import datetime, timedelta
 
 def mesurer_frequence(duree_test):
@@ -118,19 +108,19 @@ def mesurer_frequence(duree_test):
                 liste_frequence.append(frequence)
                 print(f"{temps_systeme:.1f}s : {frequence:.2f} Hz")
                 if etat_precedent == 0:
-                    envoyer_frequence(frequence)
+                    envoyer_message("FRQ", frequence)
                 else:
                     continue
 
             if temps_systeme >= duree_test:
-                envoyer_frequence(frequence)
+                envoyer_message("FRQ", frequence)
                 print(f"\nFréquence mesurée : {frequence:.2f} Hz")
                 break
             time.sleep(delta_t)  # Petite pause pour éviter de surcharger le CPU
 
     except KeyboardInterrupt:
         print("Interruption manuelle.")
-        envoyer_frequence(frequence)
+        envoyer_message("FRQ", frequence)
 
     temps_total = time.time() - temps_debut
     tours = oscillations_totales // 3
@@ -160,7 +150,7 @@ def resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, osc
     plt.grid()
     plt.legend()
     plt.show()
-    envoyer_frequence(frequence)
+    envoyer_message("FRQ", frequence)
 
 def chronometre(frequence_systeme):
     print("\nChronométrage en cours...\n")
@@ -180,7 +170,7 @@ def chronometre(frequence_systeme):
 
             print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} | {tours}", end="\r")
             if etat_precedent == 0:
-                envoyer_chronometre(temps_projet)
+                envoyer_message("CHR", temps_projet)
 
             liste_temps_projet.append(temps_projet)
             liste_temps_reel.append(temps_reel)
@@ -191,7 +181,7 @@ def chronometre(frequence_systeme):
     except KeyboardInterrupt:
         resultat_chronometre(frequence_systeme, oscillations_totales, tours, temps_projet, temps_reel,
                                        liste_temps_reel, liste_temps_projet, liste_erreur)
-        envoyer_chronometre(temps_projet)
+        envoyer_message("CHR", temps_projet)
 
 def resultat_chronometre(frequence, oscillations, tours, temps_projet, temps_reel, liste_t_reel, liste_t_projet, liste_t_erreur):
     print("\n" + "-" * 40)
@@ -236,7 +226,7 @@ def horloge(frequence_systeme):
             heure_approx = heure_depart + timedelta(seconds=temps_projet)
             heure_str = heure_approx.strftime("%H:%M:%S") # Format pour afficher l'heure
             print(f"Horloge : {heure_str}", end="\r")
-            envoyer_horloge(heure_str)
+            envoyer_message("HOR", heure_str)
             time.sleep(delta_t)
 
     except KeyboardInterrupt:
@@ -244,7 +234,7 @@ def horloge(frequence_systeme):
         print(f"{'Horloge arrêtée':^40}")
         print(f"Il était {heure_str}")
         print("-" * 40)
-        envoyer_horloge(heure_str)
+        envoyer_message("HOR", heure_str)
 
 def alarme(frequence_systeme):
     try:
@@ -266,25 +256,27 @@ def alarme(frequence_systeme):
 
             if temps_projet < temps_alarme:
                 print(f"Temps restant : {temps_restant:.2f} secondes", end="\r")
-                if etat_precedent == 0:
-                    envoyer_alarme(temps_restant)
+                envoyer_message("ALR", temps_restant)
             else:
                 print("Temps écoulé !")
-                envoyer_alarme(temps_restant)
+                envoyer_message("ALR", 0)
+                message_str("DRING")  # Envoi d'un signal pour le son
                 break
             time.sleep(delta_t)
     except KeyboardInterrupt:
         print(f"Alarme arrêtée à {temps_restant:.2f} secondes")
-        envoyer_alarme(temps_restant)
+        envoyer_message("ALR", temps_restant)
 
 def jeu1(frequence_systeme):
 
+    minus = 1 #minimum de temps pour l'affichage
+    maximus = 2
     texte = [
         "-" * 40,
         f"{'Jeu 1':^40}",
         "-" * 40,
-        "Le but est simple : essayez d'estimer 10 secondes dans notre système.",
-        "Le temps écoulé sera affiché durant les 4 premières secondes.",
+        f"Le but est simple : essayez d'estimer {maximus} secondes dans notre système.",
+        f"Le temps écoulé sera affiché durant les {minus} premières secondes.",
         "Pour commencer, appuyez sur le bouton.",
         "Appuyez à nouveau pour arrêter le chronomètre.",
         "Bonne chance !",
@@ -292,42 +284,48 @@ def jeu1(frequence_systeme):
     ]
     for i in texte:
         print(i)
+    
+    print("Appuyez sur le bouton pour commencer...")
+    while True:
+        if recevoir_message() == "BEGIN":
+            break
+    print("Chronomètre lancé. Appuyez à nouveau pour l'arrêter.")
 
     etat_precedent = 0
     oscillations_totales = 0
 
-    print("Appuyez sur le bouton pour commencer...")
-
+    # Mesure du temps jusqu'au second appui
     while True:
         oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
-        if etat_precedent == 3:
-            print("Début du jeu !")
+        tours = oscillations_totales // 3
+        temps_projet = tours / frequence_systeme
+
+        if temps_projet <= minus:
+            envoyer_message("JEU", temps_projet)
+        
+        if temps_projet > minus and temps_projet < maximus:
+            print("Que la force soit avec vous !")
+            message_str("Que la force soit avec vous !", ends="\r")
+
+
+        ligne = recevoir_message()
+        if ligne == "BEGIN":
             break
-    time.sleep(delta_t)
 
-    # Réinitialisation pour la mesure
-    oscillations_totales = 0
-    etat_precedent = 1  # On suppose que le bouton a été pressé pour démarrer
+    envoyer_message("JEU", temps_projet)
 
-    try:
-        while True:
-            oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
-            tours = oscillations_totales // 3
-            temps_projet = tours / frequence_systeme
-
-            if temps_projet <= 4:
-                print(f"Temps (affiché) : {temps_projet:.2f} secondes", end="\r")
-
-            # Si le bouton est pressé à nouveau, on arrête
-            if etat_precedent == 1:
-                print(f"\nFin du jeu ! Vous avez estimé {temps_projet:.2f} secondes.")
-                safe_write(f"JEU Temps estimé : {temps_projet:.2f} secondes\n")
-                break
-
-            time.sleep(delta_t)
-
-    except KeyboardInterrupt:
-        print(f"\nJeu interrompu à {temps_projet:.2f} secondes.")
+    if abs(temps_projet - maximus) < 0.5:
+        stop = temps_projet-maximus
+        print(f"{stop} | Bien joué ! Vous étiez proche des 10 secondes.")
+        envoyer_message("JEU", stop)
+    elif temps_projet > maximus:
+        stop = temps_projet-maximus
+        envoyer_message("JEU", stop)
+        print(f"Temps écoulé : {temps_projet:.2f} secondes. Vous avez dépassé.")
+    else:
+        stop = temps_projet-maximus
+        envoyer_message("JEU", stop)
+        print(f"Temps écoulé : {temps_projet:.2f} secondes. Trop court.")
 
 def mode_debug(delta_t, frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
     texte = [
@@ -447,7 +445,7 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
     else:
         try:
             while True:
-                accueil()
+                message_str("Bienvenue dans notre projet de mesure du temps !")
                 print("=== Bienvenue dans le projet de mesure de temps ===")
                 print("1. Chronomètre")
                 print("2. Horloge")
@@ -494,6 +492,13 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
 
         except KeyboardInterrupt:
             print("Interruption manuelle détectée. Fermeture du programme.")
+            ser1.close()
+            ser2.close()
+        finally:
+            ser1.close()
+            ser2.close()
 
 if __name__ == "__main__":
     main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_discretisation, erreur_lancement)
+    ser1.close()
+    ser2.close()
