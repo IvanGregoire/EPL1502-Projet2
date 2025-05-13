@@ -11,7 +11,7 @@ import serial
 
 # Configuration des ports
 
-port1 = "COM12" 
+port1 = "COM7" 
 baud1 = 9600    
 port2 = "COM10"  
 baud2 = 115200    
@@ -106,7 +106,7 @@ def mesurer_frequence(duree_test):
                 frequence = tours / temps_systeme
                 liste_temps.append(temps_systeme)
                 liste_frequence.append(frequence)
-                print(f"{temps_systeme:.1f}s : {frequence:.2f} Hz")
+                print(f"{temps_systeme:.1f}s : {frequence:.2f} Hz | oscillations {oscillations_totales}", end="\r")
                 if etat_precedent == 0:
                     envoyer_message("FRQ", frequence)
                 else:
@@ -114,7 +114,7 @@ def mesurer_frequence(duree_test):
 
             if temps_systeme >= duree_test:
                 envoyer_message("FRQ", frequence)
-                print(f"\nFréquence mesurée : {frequence:.2f} Hz")
+                print(f"\nFréquence mesurée : {frequence:.2f} Hz | oscillations {oscillations_totales}", end="\r")
                 break
             time.sleep(delta_t)  # Petite pause pour éviter de surcharger le CPU
 
@@ -269,8 +269,8 @@ def alarme(frequence_systeme):
 
 def jeu1(frequence_systeme):
 
-    minus = 1 #minimum de temps pour l'affichage
-    maximus = 2
+    minus = 3  # Affichage du temps pendant 10 sec
+    maximus = 10  # Objectif à atteindre
     texte = [
         "-" * 40,
         f"{'Jeu 1':^40}",
@@ -286,15 +286,15 @@ def jeu1(frequence_systeme):
         print(i)
     
     print("Appuyez sur le bouton pour commencer...")
-    while True:
-        if recevoir_message() == "BEGIN":
-            break
-    print("Chronomètre lancé. Appuyez à nouveau pour l'arrêter.")
+    while recevoir_message() != "BEGIN":
+        print("En attente de l'appui sur le bouton...", end="\r")
 
+    # → Premier appui reçu → Démarrage du chrono
     etat_precedent = 0
     oscillations_totales = 0
 
-    # Mesure du temps jusqu'au second appui
+    print("Chronomètre lancé ! Appuyez à nouveau pour l’arrêter.")
+
     while True:
         oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
         tours = oscillations_totales // 3
@@ -302,30 +302,46 @@ def jeu1(frequence_systeme):
 
         if temps_projet <= minus:
             envoyer_message("JEU", temps_projet)
-        
-        if temps_projet > minus and temps_projet < maximus:
-            print("Que la force soit avec vous !")
-            message_str("Que la force soit avec vous !", ends="\r")
 
-
+        # Vérifie l'appui de l'utilisateur pour arrêt
         ligne = recevoir_message()
         if ligne == "BEGIN":
-            break
+            break  # Arrêt du chrono
 
+    # Analyse du résultat
     envoyer_message("JEU", temps_projet)
 
-    if abs(temps_projet - maximus) < 0.5:
-        stop = temps_projet-maximus
-        print(f"{stop} | Bien joué ! Vous étiez proche des 10 secondes.")
-        envoyer_message("JEU", stop)
-    elif temps_projet > maximus:
-        stop = temps_projet-maximus
-        envoyer_message("JEU", stop)
-        print(f"Temps écoulé : {temps_projet:.2f} secondes. Vous avez dépassé.")
+    ecart = temps_projet - maximus
+    envoyer_message("JEU", ecart)
+
+    if abs(ecart) < 0.5:
+        while True:
+            print(f"{ecart:+.2f} | Bien joué ! Vous étiez proche des {maximus} secondes.", end="\r")
+            envoyer_message("JEU", temps_projet)
+            ligne = recevoir_message()
+            if ligne == "BEGIN":
+                return 
+    elif ecart > 0:
+        while True:
+            print(f"Temps écoulé : {temps_projet:.2f} secondes. Vous avez dépassé.", end="\r")
+            envoyer_message("JEU", temps_projet)
+            ligne = recevoir_message()
+            if ligne == "BEGIN":
+                return 
+    elif ecart < 0:
+        while True:
+            print(f"Temps écoulé : {temps_projet:.2f} secondes. Trop court.", end="\r")
+            envoyer_message("JEU", temps_projet)
+            ligne = recevoir_message()
+            if ligne == "BEGIN":
+                return 
     else:
-        stop = temps_projet-maximus
-        envoyer_message("JEU", stop)
-        print(f"Temps écoulé : {temps_projet:.2f} secondes. Trop court.")
+        while True:
+            print("Bien joué", end="\r")
+            envoyer_message("JEU", temps_projet)
+            ligne = recevoir_message()
+            if ligne == "BEGIN":
+                return 
 
 def mode_debug(delta_t, frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
     texte = [
