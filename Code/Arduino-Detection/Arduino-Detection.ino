@@ -1,7 +1,7 @@
 // Déclaration des variables globales
-int Mesure = A5;   // Le pin analogique utilisé pour la mesure (A5)
+int Mesure = A0;   // Le pin analogique utilisé pour la mesure (A5)
 int valeur = 0;     // Variable pour stocker la valeur lue par le capteur
-int seuil = 800;    // Seuil pour la détection (par exemple, pour détecter un aimant ou un changement de valeur)
+int seuil = 700;    // Seuil pour la détection (par exemple, pour détecter un aimant ou un changement de valeur)
 
 void setup() {
   // Initialisation de la communication série pour l'affichage des données sur le moniteur série

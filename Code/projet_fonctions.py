@@ -11,13 +11,13 @@ import serial
 
 # Configuration des ports
 
-port1 = "COM7" 
+port1 = "COM11" 
 baud1 = 9600    
 port2 = "COM10"  
 baud2 = 115200    
 
 
-frequence_systeme = 20  # En Hz
+frequence_systeme = 7.26  # En Hz
 duree_test_1 = 50  
 duree_test_2 = 100
 facteur_discretisation = 2
@@ -75,7 +75,7 @@ def recevoir_message():
 
 def envoyer_message(type_msg, valeur):
     if isinstance(valeur, float):
-        message = f"{type_msg} {valeur:.2f} s\n"
+        message = f"{type_msg} {valeur:.2f}\n"
     else:
         message = f"{type_msg} {valeur}\n"
     safe_write(message)
@@ -100,7 +100,8 @@ def mesurer_frequence(duree_test):
         while True:
             oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
 
-            temps_systeme = time.time() - temps_debut
+            temps_systeme = time.time() +1 - temps_debut
+
             if temps_systeme > 0:
                 tours = oscillations_totales // 3
                 frequence = tours / temps_systeme
@@ -156,7 +157,10 @@ def chronometre(frequence_systeme):
     print("\nChronométrage en cours...\n")
     oscillations_totales = 0
     etat_precedent = 0
-    temps_depart = time.time()
+    temps_depart = time.time() 
+    if temps_depart < 1:
+        temps_depart =1
+    
     liste_temps_reel = []
     liste_temps_projet = []
     liste_erreur = []
@@ -167,6 +171,8 @@ def chronometre(frequence_systeme):
             tours = oscillations_totales // 3
             temps_projet = tours / frequence_systeme
             temps_reel = time.time() - temps_depart
+            if temps_depart < 1:
+                temps_depart =1
 
             print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} | {tours}", end="\r")
             if etat_precedent == 0:
