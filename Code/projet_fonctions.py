@@ -14,12 +14,14 @@ import serial
 port1 = "COM11" 
 baud1 = 9600    
 port2 = "COM10"  
-baud2 = 115200    
+baud2 = 115200  
 
 
-frequence_systeme = 7.26  # En Hz
-duree_test_1 = 50  
-duree_test_2 = 100
+
+
+frequence_systeme = 6 # En Hz
+duree_test_1 = 5000000000  
+duree_test_2 = 100000000
 facteur_discretisation = 2
 delta_t = 0  # Délai entre les mesures
 erreur_lancement = False
@@ -100,7 +102,7 @@ def mesurer_frequence(duree_test):
         while True:
             oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
 
-            temps_systeme = time.time() +1 - temps_debut
+            temps_systeme = time.time() - temps_debut
 
             if temps_systeme > 0:
                 tours = oscillations_totales // 3
@@ -158,8 +160,6 @@ def chronometre(frequence_systeme):
     oscillations_totales = 0
     etat_precedent = 0
     temps_depart = time.time() 
-    if temps_depart < 1:
-        temps_depart =1
     
     liste_temps_reel = []
     liste_temps_projet = []
@@ -171,8 +171,6 @@ def chronometre(frequence_systeme):
             tours = oscillations_totales // 3
             temps_projet = tours / frequence_systeme
             temps_reel = time.time() - temps_depart
-            if temps_depart < 1:
-                temps_depart =1
 
             print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} | {tours}", end="\r")
             if etat_precedent == 0:
@@ -276,7 +274,7 @@ def alarme(frequence_systeme):
 def jeu1(frequence_systeme):
 
     minus = 3  # Affichage du temps pendant 10 sec
-    maximus = 10  # Objectif à atteindre
+    maximus = 15      # Objectif à atteindre
     texte = [
         "-" * 40,
         f"{'Jeu 1':^40}",
@@ -298,6 +296,8 @@ def jeu1(frequence_systeme):
     # → Premier appui reçu → Démarrage du chrono
     etat_precedent = 0
     oscillations_totales = 0
+    temps_projet = 0
+    tours = 0
 
     print("Chronomètre lancé ! Appuyez à nouveau pour l’arrêter.")
 
@@ -307,7 +307,11 @@ def jeu1(frequence_systeme):
         temps_projet = tours / frequence_systeme
 
         if temps_projet <= minus:
+            print(f"Temps écoulé : {temps_projet:.2f} secondes", end="\r")
             envoyer_message("JEU", temps_projet)
+        else:
+            print(f"Bonne chance !", end="\r")
+            
 
         # Vérifie l'appui de l'utilisateur pour arrêt
         ligne = recevoir_message()
