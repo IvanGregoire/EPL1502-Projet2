@@ -1,9 +1,8 @@
  ##############################################################################################################################
 ##                                                                                                                            ##
 ##   Ce code python est conçu pour mesurer le temps grâce au mouvement rotatif d'un système à trois aimants.                  ##
-##   Auteur : [Ivan G., Grégoire C., Charline C., Martin S., Guillaume J., Grâce De V.]                                                                                                       ##
-##   Date : 2025-05-13                                                                                                        ##
-##   Version 1.0.0                                                                                                          ##
+##   Auteur : [Ivan G., Grégoire C., Charline C., Martin S., Guillaume J., Grâce De V.]                                       ##                                                             
+##   Date : 2025-05-13                                                                                                        ##                                                                                                         
 ##                                                                                                                            ##
  ##############################################################################################################################
 
@@ -11,16 +10,16 @@ import serial
 
 # Configuration des ports
 
-port1 = "COM11" 
+port1 = "COM11" #Parfois il change
 baud1 = 9600    
 port2 = "COM10"  
 baud2 = 115200  
 
-frequence_systeme = 10 # En Hz      
+frequence_systeme = 10 #Il faut lancer la fonction de mesure, sinon on a une mauvaise fréquence
 duree_test_1 = 180  
 duree_test_2 = 180
 facteur_discretisation = 2
-delta_t = 0.01  # Délai entre les mesures
+delta_t = 0.01  # Délai entre les mesures (Utile pour le bouton)
 erreur_lancement = False
 
 try:
@@ -37,20 +36,19 @@ except:
 def mise_a_jour(oscillations_totales, etat_precedent):
     if ser1.in_waiting > 0:
         derniere_ligne = None
-        # Lire toutes les lignes disponibles, mais ne garder que la dernière
+        # Lire toutes les lignes disponibles, mais ne garder que la dernière 
+        #Sinon on a un problème de lecture et le programme se met à lire toutes les nouvelles et anciennes valeurs (Problème durant le concours...)
         while ser1.in_waiting > 0:
             derniere_ligne = ser1.readline().decode('utf-8', errors='ignore').strip()
-
-        # Si la dernière ligne est un chiffre, la traiter
+        # Si la dernière ligne est un chiffre, la traiter (Vérification qui, dans l'absolue, ne sert à rien)
         if derniere_ligne and derniere_ligne.isdigit():
             valeur = int(derniere_ligne)
             if valeur == 1 and etat_precedent == 0:
                 oscillations_totales += 1
             return oscillations_totales, valeur
-
     return oscillations_totales, etat_precedent
 
-def safe_write(message): #En cas de problème d'envoi
+def safe_write(message): #En cas de problème d'envoi (Si on tire sur un câble etc...)
     try:
         ser2.write(message.encode('utf-8'))
     except:
@@ -61,7 +59,7 @@ def envoyer_richardson(frequence_1, facteur, frequence_systeme,frequence_2=None)
     safe_write(message)
 
 def message_str(message):
-    message = f"{message}\n"
+    message = f"{message}\n" #Les \n sont importants. Sinon ça s'affiche mal
     safe_write(message)
 
 def recevoir_message():
@@ -303,7 +301,7 @@ def jeu1(frequence_systeme):
             break
         print("En attente de l'appui sur le bouton...", end="\r")
 
-    # → Premier appui reçu → Démarrage du chrono
+    #Premier appui reçu pour démarrer le chrono
     etat_precedent = 0
     oscillations_totales = 0
     temps_projet = 0
@@ -322,120 +320,35 @@ def jeu1(frequence_systeme):
         else:
             print(f"Bonne chance !", end="\r")
 
-        message = recevoir_message()
-        if message == "BEGIN":
-            break
-
-    # Analyse du résultat
-    envoyer_message("JEU", temps_projet)
-
+        if message == "BEGIN":     
+            envoyer_message("JEU", temps_projet) #Si on appuie encore une fois, c'est pour l'arrêter
+            break 
     ecart = temps_projet - maximus
-    envoyer_message("JEU", ecart)
 
     if abs(ecart) < 0.5:
         while True:
             print(f"{ecart:+.2f} | Bien joué ! Vous étiez proche des {maximus} secondes.", end="\r")
-            envoyer_message("JEU", temps_projet)
             ligne = recevoir_message()
             if ligne == "BEGIN":
                 return 
     elif ecart > 0:
         while True:
             print(f"Temps écoulé : {temps_projet:.2f} secondes. Vous avez dépassé.", end="\r")
-            envoyer_message("JEU", temps_projet)
             ligne = recevoir_message()
             if ligne == "BEGIN":
                 return 
     elif ecart < 0:
         while True:
             print(f"Temps écoulé : {temps_projet:.2f} secondes. Trop court.", end="\r")
-            envoyer_message("JEU", temps_projet)
             ligne = recevoir_message()
             if ligne == "BEGIN":
                 return 
     else:
         while True:
             print("Bien joué", end="\r")
-            envoyer_message("JEU", temps_projet)
             ligne = recevoir_message()
             if ligne == "BEGIN":
                 return 
-
-def mode_debug(delta_t, frequence_systeme, port, baud, duree_test_1, duree_test_2, facteur_discretisation):
-    texte = [
-        "\n" + "-" * 40,
-        f"{'DEBUG':^40}",
-        "-" * 40,
-        f"{'Temps de pause':<25}: {delta_t} s",
-        f"{'Fréquence':<25}: {frequence_systeme} Hz",
-        f"{'Port':<25}: {port}",
-        f"{'Baud':<25}: {baud}",
-        f"{'duree_test_1':<25}: {duree_test_1}",
-        f"{'duree_test_2':<25}: {duree_test_2}",
-        f"{'facteur_discretisation':<25}: {facteur_discretisation}",
-        "-" * 40  # correction de la ligne avec "\n-" * 40
-    ]
-
-    for i in texte:
-        print(i)
-
-    while True:
-        code = input(">>> ")
-        if code == "help":
-            print("quit\nchanger_temps_pause\nchanger_frequence\nchanger_port\nchanger_baud\nreset\ndebug\nchanger_temps_facteur")
-        elif code == "quit":
-            break
-        elif code == "changer_temps_pause":
-            try:
-                delta_t = float(input("Nouveau temps de pause (en secondes) : "))
-                print(f"Temps de pause changé à {delta_t} secondes")
-            except:
-                print("Erreur : nombre invalide.")
-        elif code == "changer_frequence":
-            try:
-                frequence = float(input("Nouvelle fréquence (Hz) : "))
-                print(f"Fréquence changée à {frequence} Hz")
-            except:
-                print("Erreur : nombre invalide.")
-        elif code == "changer_port":
-            port = input("Nouveau port : ")
-            try:
-                ser.close()
-                ser = serial.Serial(port, baud, timeout=1)
-                print(f"Port changé à {port}")
-            except:
-                print(f"Erreur d'ouverture du port {port}")
-        elif code == "changer_baud":
-            try:
-                baud = int(input("Nouveau baud : "))
-                ser.baudrate = baud
-                print(f"Baud changé à {baud}")
-            except:
-                print("Erreur : doit être un entier.")
-        elif code == "debug":
-            for i in texte:
-                print(i)
-        elif code == "reset":
-            frequence_systeme = 20
-            duree_test_1 = 50
-            duree_test_2 = 100
-            facteur_discretisation = 2
-            print(f"{code} : réinitialisation effectuée.")
-        
-        elif code == "changer_temps_facteur":
-            try:
-                duree_test_1 = float(input("Nouvelle durée test 1 (en secondes) : "))
-                duree_test_2 = float(input("Nouvelle durée test 2 (en secondes) : "))
-                facteur_discretisation = int(input("Nouveau facteur de discrétisation : "))
-                print(f"Durées et facteur changés :")
-                print(f"  duree_test_1 = {duree_test_1}s")
-                print(f"  duree_test_2 = {duree_test_2}s")
-                print(f"  facteur_discretisation = {facteur_discretisation}")
-            except:
-                print("Erreur : saisie invalide pour les durées ou le facteur.")
-
-        else:
-            print("Commande invalide. Tapez 'help' pour voir les options.")
 
 ########################################################################### 
 ## Methode d'extrapolation de Richardson                                 ##   
@@ -486,8 +399,7 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
                 print("3. Alarme")
                 print("4. Jeu")
                 print("5. Calcul de la fréquence")
-                print("6. Debug")
-                print("7. Quitter le programme")
+                print("6. Quitter")
 
                 choix = input("Votre choix : ").strip()
 
@@ -515,10 +427,7 @@ def main(frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_di
                             break
                         else : 
                             print("Entrée invalide")
-
                 elif choix == "6":
-                    mode_debug(delta_t, frequence_systeme, port1, baud1, duree_test_1, duree_test_2, facteur_discretisation)
-                elif choix == "7":
                     print("Fermeture du programme.")
                     break
                 else:
