@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-// Penser à intervertir le signalement du 0 et du 1 entres mes tests et le  projet
+
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
@@ -9,9 +9,9 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
-int START = 4; // PIN  
+int START = 4; // PIN D4
 int valeur = 0; 
-int Buzzer = 5; // PIN  
+int Buzzer = 5; // PIN D5 
 int etat_precedent = 0; 
 bool pression = false;  
 
@@ -19,7 +19,7 @@ String ligneSerial = "";  // Pour lire les lignes série
 
 void setup() {
   Wire.begin(21, 22);     // SDA et SCL
-  Serial.begin(115200);
+  Serial.begin(115200);  
   pinMode(Buzzer, OUTPUT);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -27,7 +27,7 @@ void setup() {
     while (true);  // Boucle infinie si écran non détecté
   }
 
-  display.clearDisplay(); 
+  display.clearDisplay(); // Efface l'écran s'il y a réinitialisation (ça évite de débrancher et rebrancher l'écran)
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0); // On affiche en haut à gauche
@@ -43,21 +43,8 @@ void loop() {
     pression = true;
     Serial.println("BEGIN");
   }
-  else if (valeur <= 3000 && pression) {  
+  else if (valeur <= 3000 && pression) {  // La vérification de la pression est faite pour éviter les appuis trop longs
     pression = false;
-  }
-
-
-
-  // Lecture des données envoyées par le port
-  if (Serial.available()) {
-    ligneSerial = Serial.readStringUntil('\n');
-    if (ligneSerial == "DRING"){
-    alarme(); 
-    }
-    else{
-    afficherTexte(ligneSerial);  // Affichage simple du message reçu
-    }
   }
 }
 
@@ -66,13 +53,4 @@ void afficherTexte(String texte) {
   display.setCursor(0, 0);
   display.println(texte);
   display.display();
-}
-
-void alarme() {
-  for (int i = 0; i < 4; i++) {
-    digitalWrite(Buzzer, HIGH);  
-    delay(300);           
-    digitalWrite(Buzzer, LOW);   
-    delay(200);           
-  }
 }
