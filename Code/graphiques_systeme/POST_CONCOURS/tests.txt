@@ -1,0 +1,44 @@
+1) 
+--- Récapitulatif ---
+----------------------------------------
+Durée totale de mesure : 181.09 s
+Nombre total d'oscillations : 5319
+Nombre de tours complets : 1773
+Fréquence moyenne : 9.791 Hz
+----------------------------------------
+
+2) 
+--- Récapitulatif ---
+----------------------------------------
+Durée totale de mesure : 180.00 s
+Nombre total d'oscillations : 5523
+Nombre de tours complets : 1841
+Fréquence moyenne : 10.228 Hz
+----------------------------------------
+
+3)
+--- Récapitulatif ---
+----------------------------------------
+Durée totale de mesure : 180.00 s
+Nombre total d'oscillations : 4444
+Nombre de tours complets : 1481
+Fréquence moyenne : 8.228 Hz
+----------------------------------------
+
+4)
+--- Récapitulatif ---
+----------------------------------------
+Durée totale de mesure : 180.00 s
+Nombre total d'oscillations : 4185
+Nombre de tours complets : 1395
+Fréquence moyenne : 7.750 Hz
+----------------------------------------
+
+5)
+--- Récapitulatif ---
+----------------------------------------
+Durée totale de mesure : 180.01 s
+Nombre total d'oscillations : 4682
+Nombre de tours complets : 1560
+Fréquence moyenne : 8.666 Hz
+----------------------------------------

@@ -1,0 +1,9 @@
+2)
+--- Récapitulatif ---
+----------------------------------------
+Durée totale de mesure : 180.02 s
+Nombre total d'oscillations : 2267
+Nombre de tours complets : 755
+Fréquence moyenne : 4.194 Hz
+----------------------------------------
+Nouvelle fréquence du système établit à : 4.193935350305267

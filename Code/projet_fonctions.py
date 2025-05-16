@@ -16,10 +16,7 @@ baud1 = 9600
 port2 = "COM10"  
 baud2 = 115200  
 
-
-
-
-frequence_systeme = 6 # En Hz
+frequence_systeme = 10 # En Hz      
 duree_test_1 = 180  
 duree_test_2 = 180
 facteur_discretisation = 2
@@ -73,7 +70,7 @@ def recevoir_message():
             ligne = ser2.readline().decode('utf-8', errors='ignore').strip()
             if ligne:  # si on a bien une ligne non vide
                 return ligne
-        time.sleep(delta_t) 
+
         return None  # rien reçu
     except :
         print("Erreur de réception du message. PORT 2")
