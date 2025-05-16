@@ -1,24 +1,19 @@
-// Déclaration des variables globales
-int Mesure = A5;   // Le pin analogique utilisé pour la mesure (A5)
-int valeur = 0;     // Variable pour stocker la valeur lue par le capteur
-int seuil = 600;    // Seuil pour la détection (par exemple, pour détecter un aimant ou un changement de valeur)
+int Mesure = A5;      // Pin analogique pour la mesure
+int valeur = 0;       // Valeur lue
+int seuil = 100;      // Seuil de détection
+int etat_precedent = 0; // État précédent (0 ou 1)
 
 void setup() {
-  // Initialisation de la communication série pour l'affichage des données sur le moniteur série
-  Serial.begin(9600);  
+  Serial.begin(9600);  // Initialisation de la communication série
 }
 
 void loop() {
-  // Lecture de la valeur analogique provenant du capteur connecté à A5
   valeur = analogRead(Mesure);  
+  int etat_actuel = (valeur > seuil) ? 1 : 0;
 
-  // Vérification si la valeur lue dépasse le seuil défini
-  if (valeur > seuil) {
-    // Si la valeur dépasse le seuil, envoyer "0" sur le port série (indique un état particulier, ici le passage d'un aimant)
-    Serial.println(1);   
-  } else {
-    // Si la valeur est inférieure au seuil, envoyer "1" sur le port série
-    Serial.println(0);   
+  // Envoie uniquement si changement d'état
+  if (etat_actuel != etat_precedent) {
+    Serial.println(etat_actuel);
+    etat_precedent = etat_actuel;
   }
-  // Aucun délai n'est inclus afin d'éviter de passer des oscillations en cas d'une vitesse élevée
 }

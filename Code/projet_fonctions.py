@@ -1,7 +1,7 @@
  ##############################################################################################################################
 ##                                                                                                                            ##
 ##   Ce code python est conçu pour mesurer le temps grâce au mouvement rotatif d'un système à trois aimants.                  ##
-##   Auteur : [Ivan G.]                                                                                                       ##
+##   Auteur : [Ivan G., Grégoire C., Charline C., Martin S., Guillaume J., Grâce De V.]                                                                                                       ##
 ##   Date : 2025-05-13                                                                                                        ##
 ##   Version 1.0.0                                                                                                          ##
 ##                                                                                                                            ##
@@ -20,10 +20,10 @@ baud2 = 115200
 
 
 frequence_systeme = 6 # En Hz
-duree_test_1 = 5000000000  
-duree_test_2 = 100000000
+duree_test_1 = 120  
+duree_test_2 = 240
 facteur_discretisation = 2
-delta_t = 0  # Délai entre les mesures
+delta_t = 0.01  # Délai entre les mesures
 erreur_lancement = False
 
 try:
@@ -38,13 +38,19 @@ except:
 ########################################################################### 
 
 def mise_a_jour(oscillations_totales, etat_precedent):
-    if ser1.in_waiting > 0: 
-        ligne = ser1.readline().decode('utf-8', errors='ignore').strip()
-        if ligne.isdigit(): 
-            valeur = int(ligne) 
-            if valeur == 1 and etat_precedent == 0: 
-                oscillations_totales += 1  
-            return oscillations_totales, valeur  # Retourne l'état actuel et le nombre d'oscillations
+    if ser1.in_waiting > 0:
+        derniere_ligne = None
+        # Lire toutes les lignes disponibles, mais ne garder que la dernière
+        while ser1.in_waiting > 0:
+            derniere_ligne = ser1.readline().decode('utf-8', errors='ignore').strip()
+
+        # Si la dernière ligne est un chiffre, la traiter
+        if derniere_ligne and derniere_ligne.isdigit():
+            valeur = int(derniere_ligne)
+            if valeur == 1 and etat_precedent == 0:
+                oscillations_totales += 1
+            return oscillations_totales, valeur
+
     return oscillations_totales, etat_precedent
 
 def safe_write(message): #En cas de problème d'envoi
@@ -65,12 +71,10 @@ def recevoir_message():
     try:
         if ser2.in_waiting > 0:
             ligne = ser2.readline().decode('utf-8', errors='ignore').strip()
-            if ligne == "BEGIN":
+            if ligne:  # si on a bien une ligne non vide
                 return ligne
-            else:
-                return None
-            
         time.sleep(delta_t) 
+        return None  # rien reçu
     except :
         print("Erreur de réception du message. PORT 2")
         return
@@ -119,7 +123,6 @@ def mesurer_frequence(duree_test):
                 envoyer_message("FRQ", frequence)
                 print(f"\nFréquence mesurée : {frequence:.2f} Hz | oscillations {oscillations_totales}", end="\r")
                 break
-            time.sleep(delta_t)  # Petite pause pour éviter de surcharger le CPU
 
     except KeyboardInterrupt:
         print("Interruption manuelle.")
@@ -158,34 +161,43 @@ def resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, osc
 def chronometre(frequence_systeme):
     print("\nChronométrage en cours...\n")
     oscillations_totales = 0
+    oscillations_utiles = 0
     etat_precedent = 0
-    temps_depart = time.time() 
-    
+    temps_depart = time.time()
+    start = 0
+
     liste_temps_reel = []
     liste_temps_projet = []
     liste_erreur = []
 
     try:
         while True:
-            oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
-            tours = oscillations_totales // 3
-            temps_projet = tours / frequence_systeme
-            temps_reel = time.time() - temps_depart
+            oscillations_totales, etat_precedent = mise_a_jour( oscillations_totales, etat_precedent)
 
-            print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} | {tours}", end="\r")
-            if etat_precedent == 0:
-                envoyer_message("CHR", temps_projet)
+            if oscillations_totales > start:
+                oscillations_utiles = oscillations_totales - start
+                tours = oscillations_utiles // 3
+                temps_projet = tours / frequence_systeme
+                temps_reel = time.time() - temps_depart
 
-            liste_temps_projet.append(temps_projet)
-            liste_temps_reel.append(temps_reel)
-            liste_erreur.append(temps_reel - temps_projet)
-            time.sleep(delta_t)
+                print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} oscillations | {tours} tours", end="\r")
+
+                if etat_precedent == 0:
+                    envoyer_message("CHR", temps_projet)
+
+                liste_temps_projet.append(temps_projet)
+                liste_temps_reel.append(temps_reel)
+                liste_erreur.append(temps_reel - temps_projet)
 
 
     except KeyboardInterrupt:
-        resultat_chronometre(frequence_systeme, oscillations_totales, tours, temps_projet, temps_reel,
-                                       liste_temps_reel, liste_temps_projet, liste_erreur)
-        envoyer_message("CHR", temps_projet)
+        print("\nArrêt manuel détecté.")
+        if oscillations_totales > start:
+            resultat_chronometre(frequence_systeme, oscillations_totales, tours, temps_projet, temps_reel,
+                                 liste_temps_reel, liste_temps_projet, liste_erreur)
+            envoyer_message("CHR", temps_projet)
+        else:
+            print("Pas assez d'oscillations utiles détectées.")
 
 def resultat_chronometre(frequence, oscillations, tours, temps_projet, temps_reel, liste_t_reel, liste_t_projet, liste_t_erreur):
     print("\n" + "-" * 40)
@@ -231,8 +243,6 @@ def horloge(frequence_systeme):
             heure_str = heure_approx.strftime("%H:%M:%S") # Format pour afficher l'heure
             print(f"Horloge : {heure_str}", end="\r")
             envoyer_message("HOR", heure_str)
-            time.sleep(delta_t)
-
     except KeyboardInterrupt:
         print("\n" + "-" * 40)
         print(f"{'Horloge arrêtée':^40}")
@@ -266,7 +276,7 @@ def alarme(frequence_systeme):
                 envoyer_message("ALR", 0)
                 message_str("DRING")  # Envoi d'un signal pour le son
                 break
-            time.sleep(delta_t)
+
     except KeyboardInterrupt:
         print(f"Alarme arrêtée à {temps_restant:.2f} secondes")
         envoyer_message("ALR", temps_restant)
@@ -288,9 +298,12 @@ def jeu1(frequence_systeme):
     ]
     for i in texte:
         print(i)
-    
+
     print("Appuyez sur le bouton pour commencer...")
-    while recevoir_message() != "BEGIN":
+    while True:
+        message = recevoir_message()
+        if message == "BEGIN":
+            break
         print("En attente de l'appui sur le bouton...", end="\r")
 
     # → Premier appui reçu → Démarrage du chrono
@@ -311,12 +324,10 @@ def jeu1(frequence_systeme):
             envoyer_message("JEU", temps_projet)
         else:
             print(f"Bonne chance !", end="\r")
-            
 
-        # Vérifie l'appui de l'utilisateur pour arrêt
-        ligne = recevoir_message()
-        if ligne == "BEGIN":
-            break  # Arrêt du chrono
+        message = recevoir_message()
+        if message == "BEGIN":
+            break
 
     # Analyse du résultat
     envoyer_message("JEU", temps_projet)

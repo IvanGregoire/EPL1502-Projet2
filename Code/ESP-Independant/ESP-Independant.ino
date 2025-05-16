@@ -26,7 +26,7 @@ void setup() {
     while (true);  // Boucle infinie si écran non détecté
   }
 
-  display.clearDisplay();
+  display.clearDisplay(); 
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0); // On affiche en haut à gauche
