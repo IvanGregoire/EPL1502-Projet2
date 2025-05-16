@@ -20,8 +20,8 @@ baud2 = 115200
 
 
 frequence_systeme = 6 # En Hz
-duree_test_1 = 120  
-duree_test_2 = 240
+duree_test_1 = 180  
+duree_test_2 = 180
 facteur_discretisation = 2
 delta_t = 0.01  # Délai entre les mesures
 erreur_lancement = False
