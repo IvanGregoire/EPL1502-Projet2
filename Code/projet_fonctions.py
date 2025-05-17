@@ -1,8 +1,19 @@
  ##############################################################################################################################
 ##                                                                                                                            ##
-##   Ce code python est conçu pour mesurer le temps grâce au mouvement rotatif d'un système à trois aimants.                  ##
-##   Auteur : [Ivan G., Grégoire C., Charline C., Martin S., Guillaume J., Grâce De V.]                                       ##                                                             
-##   Date : 2025-05-13                                                                                                        ##                                                                                                         
+##   Ce code Python est conçu pour mesurer le temps grâce au mouvement rotatif d'un système à trois aimants.                v ##
+##                                                                                                                            ##
+##   Auteurs : Ivan G., Grégoire C., Charline C., Martin S., Guillaume J., Grâce De V.                                        ##
+##   Date : 2025-05-13                                                                                                        ##
+##                                                                                                                            ##
+##   Sources :                                                                                                                ##
+##     - Documentation PySerial : https://pyserial.readthedocs.io/en/latest/pyserial.html                                     ##
+##     - Tutoriel Arduino-Python (Arduino Project Hub) :                                                                      ##
+##         https://projecthub.arduino.cc/ansh2919/serial-communication-between-python-and-arduino-663756                      ##
+##     - Tutoriel vidéo de communication série Arduino ↔ Python :                                                             ##
+##         https://www.youtube.com/watch?v=iKGYbMD3NT8&list=PLb1SYTph-GZJb1CFM7ioVY9XJYlPVUBQy&index=1                        ##
+##     - Documentation officielle du module `datetime` de Python :                                                            ##
+##         https://docs.python.org/3/library/datetime.html                                                                    ##                                  
+##     - Github Copilot pour les corrections d'erreurs récurrentes et pour des explications approfondies sur l'optimisation   ##                                                                                                       ##
 ##                                                                                                                            ##
  ##############################################################################################################################
 
@@ -33,20 +44,20 @@ except:
 ## Fonctions pour les microcontroleurs                                   ##   
 ########################################################################### 
 
-def mise_a_jour(oscillations_totales, etat_precedent):
+def mise_a_jour(detections_totales, etat_precedent):
     if ser1.in_waiting > 0:
         derniere_ligne = None
         # Lire toutes les lignes disponibles, mais ne garder que la dernière 
         #Sinon on a un problème de lecture et le programme se met à lire toutes les nouvelles et anciennes valeurs (Problème durant le concours...)
         while ser1.in_waiting > 0:
             derniere_ligne = ser1.readline().decode('utf-8', errors='ignore').strip()
-        # Si la dernière ligne est un chiffre, la traiter (Vérification qui, dans l'absolue, ne sert à rien)
+        # Si la dernière ligne est un chiffre, la traiter (Vérification qui, dans l'absolue, ne sert à rien puisque ça ne renvoie que des 1 et des 0)
         if derniere_ligne and derniere_ligne.isdigit():
             valeur = int(derniere_ligne)
             if valeur == 1 and etat_precedent == 0:
-                oscillations_totales += 1
-            return oscillations_totales, valeur
-    return oscillations_totales, etat_precedent
+                detections_totales += 1
+            return detections_totales, valeur
+    return detections_totales, etat_precedent
 
 def safe_write(message): #En cas de problème d'envoi (Si on tire sur un câble etc...)
     try:
@@ -90,7 +101,7 @@ from datetime import datetime, timedelta
 
 def mesurer_frequence(duree_test):
     etat_precedent = 0
-    oscillations_totales = 0
+    detections_totales = 0
     temps_debut = time.time()
     #Partie pour le graphique
     liste_temps = []
@@ -99,16 +110,16 @@ def mesurer_frequence(duree_test):
     print("Début du test...")
     try:
         while True:
-            oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
+            detections_totales, etat_precedent = mise_a_jour(detections_totales, etat_precedent)
 
             temps_systeme = time.time() - temps_debut
 
             if temps_systeme > 0:
-                tours = oscillations_totales // 3
+                tours = detections_totales // 3
                 frequence = tours / temps_systeme
                 liste_temps.append(temps_systeme)
                 liste_frequence.append(frequence)
-                print(f"{temps_systeme:.1f}s : {frequence:.2f} Hz | oscillations {oscillations_totales}", end="\r")
+                print(f"{temps_systeme:.1f}s : {frequence:.2f} Hz | détections {detections_totales}", end="\r")
                 if etat_precedent == 0:
                     envoyer_message("FRQ", frequence)
                 else:
@@ -116,7 +127,7 @@ def mesurer_frequence(duree_test):
 
             if temps_systeme >= duree_test:
                 envoyer_message("FRQ", frequence)
-                print(f"\nFréquence mesurée : {frequence:.2f} Hz | oscillations {oscillations_totales}", end="\r")
+                print(f"\nFréquence mesurée : {frequence:.2f} Hz | détections {detections_totales}", end="\r")
                 break
 
     except KeyboardInterrupt:
@@ -124,21 +135,21 @@ def mesurer_frequence(duree_test):
         envoyer_message("FRQ", frequence)
 
     temps_total = time.time() - temps_debut
-    tours = oscillations_totales // 3
+    tours = detections_totales // 3
     if temps_total > 0:
         frequence = tours / temps_total
-        resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, oscillations_totales, tours)
+        resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, detections_totales, tours)
     else:
         frequence = None
         return frequence
     return frequence
 
-def resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, oscillations_totales, tours):
+def resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, detection_totales, tours):
     print("-" * 40)
     print("\n--- Récapitulatif ---")
     print("-" * 40)
     print(f"Durée totale de mesure : {temps_total:.2f} s")
-    print(f"Nombre total d'oscillations : {oscillations_totales}")
+    print(f"Nombre total de détections : {detection_totales}")
     print(f"Nombre de tours complets : {tours}")
     print(f"Fréquence moyenne : {frequence:.3f} Hz")
     print("-" * 40)
@@ -155,8 +166,8 @@ def resultat_frequence(frequence, liste_temps, liste_frequence, temps_total, osc
 
 def chronometre(frequence_systeme):
     print("\nChronométrage en cours...\n")
-    oscillations_totales = 0
-    oscillations_utiles = 0
+    detections_totales = 0
+    detections_utiles = 0
     etat_precedent = 0
     temps_depart = time.time()
     start = 0
@@ -167,15 +178,15 @@ def chronometre(frequence_systeme):
 
     try:
         while True:
-            oscillations_totales, etat_precedent = mise_a_jour( oscillations_totales, etat_precedent)
+            detections_totales, etat_precedent = mise_a_jour( detections_totales, etat_precedent)
 
-            if oscillations_totales > start:
-                oscillations_utiles = oscillations_totales - start
-                tours = oscillations_utiles // 3
+            if detections_totales > start:
+                detections_utiles = detections_totales - start
+                tours = detections_utiles // 3
                 temps_projet = tours / frequence_systeme
                 temps_reel = time.time() - temps_depart
 
-                print(f"Temps mesuré : {temps_projet:.2f} s | {oscillations_totales} oscillations | {tours} tours", end="\r")
+                print(f"Temps mesuré : {temps_projet:.2f} s | {detections_totales} détections | {tours} tours", end="\r")
 
                 if etat_precedent == 0:
                     envoyer_message("CHR", temps_projet)
@@ -187,19 +198,19 @@ def chronometre(frequence_systeme):
 
     except KeyboardInterrupt:
         print("\nArrêt manuel détecté.")
-        if oscillations_totales > start:
-            resultat_chronometre(frequence_systeme, oscillations_totales, tours, temps_projet, temps_reel,
+        if detections_totales > start:
+            resultat_chronometre(frequence_systeme, detections_totales, tours, temps_projet, temps_reel,
                                  liste_temps_reel, liste_temps_projet, liste_erreur)
             envoyer_message("CHR", temps_projet)
         else:
-            print("Pas assez d'oscillations utiles détectées.")
+            print("Pas assez de détections utiles détectées.")
 
-def resultat_chronometre(frequence, oscillations, tours, temps_projet, temps_reel, liste_t_reel, liste_t_projet, liste_t_erreur):
+def resultat_chronometre(frequence, detections, tours, temps_projet, temps_reel, liste_t_reel, liste_t_projet, liste_t_erreur):
     print("\n" + "-" * 40)
     print(f"{'RÉCAPITULATIF':^40}")
     print("-" * 40)
     print(f"{'Fréquence':<25}: {frequence} Hz")
-    print(f"{'Oscillations détectées':<25}: {oscillations}")
+    print(f"{'Détections détectées':<25}: {detections}")
     print(f"{'Tours complets':<25}: {tours}")
     print(f"{'Temps mesuré':<25}: {temps_projet:.2f} s")
     print(f"{'Temps réel écoulé':<25}: {temps_reel:.2f} s")
@@ -225,14 +236,14 @@ def resultat_chronometre(frequence, oscillations, tours, temps_projet, temps_ree
     plt.show()
 
 def horloge(frequence_systeme):
-    oscillations_totales = 0
+    detections_totales = 0
     etat_precedent = 0
     heure_depart = datetime.now()
 
     try:
         while True:
-            oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
-            tours = oscillations_totales // 3
+            detections_totales, etat_precedent = mise_a_jour(detections_totales, etat_precedent)
+            tours = detections_totales // 3
             temps_projet = tours / frequence_systeme
             heure_approx = heure_depart + timedelta(seconds=temps_projet)
             heure_str = heure_approx.strftime("%H:%M:%S") # Format pour afficher l'heure
@@ -253,12 +264,12 @@ def alarme(frequence_systeme):
         return
 
     etat_precedent = 0
-    oscillations_totales = 0
+    detections_totales = 0
 
     try:
         while True:
-            oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
-            tours = oscillations_totales // 3
+            detections_totales, etat_precedent = mise_a_jour(detections_totales, etat_precedent)
+            tours = detections_totales // 3
             temps_projet = tours / frequence_systeme
 
             temps_restant = temps_alarme - temps_projet
@@ -303,15 +314,15 @@ def jeu1(frequence_systeme):
 
     #Premier appui reçu pour démarrer le chrono
     etat_precedent = 0
-    oscillations_totales = 0
+    detections_totales = 0
     temps_projet = 0
     tours = 0
 
     print("Chronomètre lancé ! Appuyez à nouveau pour l’arrêter.")
 
     while True:
-        oscillations_totales, etat_precedent = mise_a_jour(oscillations_totales, etat_precedent)
-        tours = oscillations_totales // 3
+        detections_totales, etat_precedent = mise_a_jour(detections_totales, etat_precedent)
+        tours = detections_totales // 3
         temps_projet = tours / frequence_systeme
 
         if temps_projet <= minus:
